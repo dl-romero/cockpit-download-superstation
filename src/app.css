@@ -1,3 +1,33 @@
+/* ── Theme variables ─────────────────────────────────────────────────────── */
+/* PatternFly v5 variables used throughout; defined here since Cockpit does  */
+/* not inject them into plugin iframes.                                       */
+
+:root {
+  --pf-v5-global--BackgroundColor--100:      #1b1d21;
+  --pf-v5-global--BackgroundColor--200:      #27292e;
+  --pf-v5-global--BackgroundColor--300:      #34373d;
+  --pf-v5-global--BackgroundColor--dark-100: #0f1114;
+  --pf-v5-global--Color--100:                #e0e0e0;
+  --pf-v5-global--Color--200:                #8a8d90;
+  --pf-v5-global--Color--light-100:          #ffffff;
+  --pf-v5-global--BorderColor--100:          #3c3f45;
+  --pf-v5-global--primary-color--100:        #2b9af3;
+  --pf-v5-global--primary-color--100-rgb:    43, 154, 243;
+  --pf-v5-global--danger-color--100:         #fe5142;
+}
+
+/* ── Reset ───────────────────────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  background: var(--pf-v5-global--BackgroundColor--100);
+  color: var(--pf-v5-global--Color--100);
+}
+
 /* ── Layout ──────────────────────────────────────────────────────────────── */
 
 .ds-layout {
