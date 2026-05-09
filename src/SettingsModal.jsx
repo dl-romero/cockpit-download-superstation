@@ -17,7 +17,11 @@ export default function SettingsModal({ onClose, onAuthError }) {
   const [updateMsg, setUpdateMsg] = useState({ text: '', status: '' });
   const [updating, setUpdating]   = useState(false);
 
+  const [fetchKey, setFetchKey] = useState(0);
+
   useEffect(() => {
+    setLoading(true);
+    setError('');
     const controller = { cancelled: false };
     const timeout = setTimeout(() => {
       if (!controller.cancelled) {
@@ -42,7 +46,7 @@ export default function SettingsModal({ onClose, onAuthError }) {
       });
 
     return () => { controller.cancelled = true; clearTimeout(timeout); };
-  }, []);
+  }, [fetchKey]);
 
   function field(key) {
     return {
@@ -124,6 +128,7 @@ export default function SettingsModal({ onClose, onAuthError }) {
                 <button className="ds-btn sm" onClick={() => {
                   const p = parseInt(document.getElementById('cockpit-port-input').value) || 8080;
                   api.setPort(p);
+                  setFetchKey(k => k + 1);
                 }}>
                   Apply
                 </button>
