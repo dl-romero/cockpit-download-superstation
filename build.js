@@ -18,7 +18,7 @@ const ctx = {
   bundle: true,
   outdir: distDir,
   // cockpit is loaded as a plain script in index.html and sets window.cockpit
-  external: ['cockpit'],
+  external: [],
   // Silence CSS imports from transitive deps; app styles come from app.css
   loader: { '.css': 'empty', '.svg': 'dataurl', '.woff': 'dataurl', '.woff2': 'dataurl', '.ttf': 'dataurl' },
   define: { 'process.env.NODE_ENV': '"production"' },

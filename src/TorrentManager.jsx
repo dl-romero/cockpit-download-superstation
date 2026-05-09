@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import cockpit from 'cockpit';
+const cockpit = window.cockpit;
 import * as api from './api';
 import ServiceStatus from './ServiceStatus';
 import AddModal from './AddModal';

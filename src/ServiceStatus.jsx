@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import cockpit from 'cockpit';
+const cockpit = window.cockpit;
 
 const SERVICE_NAMES = ['download-superstation', 'torrent-webui'];
 

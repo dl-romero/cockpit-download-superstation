@@ -1,4 +1,4 @@
-import cockpit from 'cockpit';
+const cockpit = window.cockpit;
 
 const SESSION_KEY = 'ds-session';
 const PORT_KEY    = 'ds-port';
