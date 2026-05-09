@@ -4,17 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Download Superstation</title>
-  <!-- PatternFly CSS is served by Cockpit's base1 package -->
-  <link rel="stylesheet" href="../base1/patternfly.css" type="text/css">
   <!-- Custom layout and component styles -->
   <link rel="stylesheet" href="app.css" type="text/css">
-  <!-- cockpit.js resolved via importmap -->
-  <script type="importmap">
-    { "imports": { "cockpit": "../base1/cockpit.js" } }
-  </script>
+  <!-- cockpit.js sets window.cockpit and must load before index.js -->
+  <script src="../base1/cockpit.js"></script>
 </head>
 <body>
   <div id="root"></div>
-  <script type="module" src="index.js"></script>
+  <script src="index.js"></script>
 </body>
 </html>

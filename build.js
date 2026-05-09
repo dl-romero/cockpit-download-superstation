@@ -17,13 +17,12 @@ const ctx = {
   entryPoints: [path.join(srcDir, 'index.jsx')],
   bundle: true,
   outdir: distDir,
-  // cockpit is provided by the Cockpit runtime via the importmap in index.html
+  // cockpit is loaded as a plain script in index.html and sets window.cockpit
   external: ['cockpit'],
-  // Silence any accidental CSS imports from transitive deps; styling comes from ../base1/patternfly.css
+  // Silence CSS imports from transitive deps; app styles come from app.css
   loader: { '.css': 'empty', '.svg': 'dataurl', '.woff': 'dataurl', '.woff2': 'dataurl', '.ttf': 'dataurl' },
   define: { 'process.env.NODE_ENV': '"production"' },
-  format: 'esm',
-  splitting: false,
+  format: 'iife',
   minify: !watch,
   sourcemap: watch ? 'inline' : false,
   logLevel: 'info',
