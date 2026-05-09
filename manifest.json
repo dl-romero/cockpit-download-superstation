@@ -1,0 +1,23 @@
+{
+  "version": 0,
+  "requires": { "cockpit": ">=300" },
+  "name": "cockpit-download-superstation",
+  "dashboard": {
+    "download-superstation": {
+      "label": "Download Superstation",
+      "path": "index.html",
+      "order": 50,
+      "keywords": [
+        { "matches": ["torrent", "download", "seeding", "magnet", "bittorrent"], "weight": 3 }
+      ]
+    }
+  },
+  "conditions": [
+    {
+      "any": [
+        { "path-exists": "/etc/systemd/system/download-superstation.service" },
+        { "path-exists": "/etc/systemd/system/torrent-webui.service" }
+      ]
+    }
+  ]
+}
