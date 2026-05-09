@@ -34,6 +34,7 @@ if [ "$USER_INSTALL" -eq 1 ]; then
   DEST="$HOME/.local/share/cockpit/cockpit-download-superstation"
   mkdir -p "$DEST"
   cp -r dist/. "$DEST/"
+  cp manifest.json "$DEST/"
   echo "[install] Installed to $DEST"
 else
   if [ "$EUID" -ne 0 ]; then
@@ -43,6 +44,7 @@ else
   DEST="/usr/share/cockpit/cockpit-download-superstation"
   mkdir -p "$DEST"
   cp -r dist/. "$DEST/"
+  cp manifest.json "$DEST/"
   echo "[install] Installed to $DEST"
 fi
 
