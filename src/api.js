@@ -21,7 +21,7 @@ function session() { return localStorage.getItem(SESSION_KEY); }
 
 function authHeaders() {
   const s = session();
-  return s ? { Cookie: s } : {};
+  return s ? { Authorization: `Bearer ${s}` } : {};
 }
 
 async function req(method, path, body, extraHeaders = {}) {
@@ -53,18 +53,9 @@ export async function login(username, password) {
     body: JSON.stringify({ username, password }),
   });
 
-  let cookie = null;
-  r.response((status, headers) => {
-    const raw = headers['set-cookie'];
-    if (raw) {
-      const val = Array.isArray(raw) ? raw[0] : raw;
-      cookie = val.split(';')[0].trim();
-    }
-  });
-
   const data = JSON.parse(await r);
   if (!data.ok) throw new Error(data.error || 'Login failed');
-  if (cookie) localStorage.setItem(SESSION_KEY, cookie);
+  if (data.token) localStorage.setItem(SESSION_KEY, data.token);
   return data;
 }
 
