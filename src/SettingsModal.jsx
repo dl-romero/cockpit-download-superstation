@@ -18,12 +18,30 @@ export default function SettingsModal({ onClose, onAuthError }) {
   const [updating, setUpdating]   = useState(false);
 
   useEffect(() => {
+    const controller = { cancelled: false };
+    const timeout = setTimeout(() => {
+      if (!controller.cancelled) {
+        controller.cancelled = true;
+        setError('Could not reach the service. Check the port below and try again.');
+        setLoading(false);
+      }
+    }, 8000);
+
     Promise.all([api.getSettings(), api.getVersion()])
-      .then(([s, v]) => { setSettings(s); setVersion(v); setLoading(false); })
+      .then(([s, v]) => {
+        if (controller.cancelled) return;
+        clearTimeout(timeout);
+        setSettings(s); setVersion(v); setLoading(false);
+      })
       .catch(e => {
-        if (e.status === 401) onAuthError();
+        if (controller.cancelled) return;
+        clearTimeout(timeout);
+        if (e.status === 401) { onAuthError(); return; }
+        setError(`Could not load settings: ${e.message || 'connection failed'}. Check the port below.`);
         setLoading(false);
       });
+
+    return () => { controller.cancelled = true; clearTimeout(timeout); };
   }, []);
 
   function field(key) {
@@ -90,10 +108,36 @@ export default function SettingsModal({ onClose, onAuthError }) {
         </div>
 
         <div className="ds-modal-body">
+          {/* Port — always visible so users can fix a wrong port without needing the API */}
+          <div className="ds-settings-section">
+            <div className="ds-settings-section-title">Cockpit Plugin</div>
+            <div className="ds-settings-row">
+              <label className="ds-label">Service Port</label>
+              <div className="ds-settings-input-unit">
+                <input
+                  className="ds-input"
+                  type="number"
+                  defaultValue={api.getPort()}
+                  min="1" max="65535"
+                  id="cockpit-port-input"
+                />
+                <button className="ds-btn sm" onClick={() => {
+                  const p = parseInt(document.getElementById('cockpit-port-input').value) || 8080;
+                  api.setPort(p);
+                }}>
+                  Apply
+                </button>
+              </div>
+              <div className="ds-settings-hint">Port where Download Superstation is running on this server.</div>
+            </div>
+          </div>
+
           {loading ? (
             <div style={{ textAlign: 'center', padding: 32, color: 'var(--pf-v5-global--Color--200)' }}>Loading…</div>
           ) : (
             <>
+              {error && <div className="ds-error" style={{ marginBottom: 16 }}>{error}</div>}
+              {settings && <>
               {/* Storage */}
               <div className="ds-settings-section">
                 <div className="ds-settings-section-title">Storage</div>
@@ -205,31 +249,7 @@ export default function SettingsModal({ onClose, onAuthError }) {
                 </div>
               </div>
 
-              {/* Cockpit plugin port */}
-              <div className="ds-settings-section">
-                <div className="ds-settings-section-title">Cockpit Plugin</div>
-                <div className="ds-settings-row">
-                  <label className="ds-label">Service Port</label>
-                  <div className="ds-settings-input-unit">
-                    <input
-                      className="ds-input"
-                      type="number"
-                      defaultValue={api.getPort()}
-                      min="1" max="65535"
-                      id="cockpit-port-input"
-                    />
-                    <button className="ds-btn sm" onClick={() => {
-                      const p = parseInt(document.getElementById('cockpit-port-input').value) || 8080;
-                      api.setPort(p);
-                    }}>
-                      Apply
-                    </button>
-                  </div>
-                  <div className="ds-settings-hint">Port where Download Superstation is running on this server.</div>
-                </div>
-              </div>
-
-              {error && <div className="ds-error">{error}</div>}
+              </>}
             </>
           )}
         </div>
