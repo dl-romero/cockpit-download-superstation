@@ -6,6 +6,7 @@ export function getPort() { return parseInt(localStorage.getItem(PORT_KEY) || '8
 export function setPort(p) { localStorage.setItem(PORT_KEY, String(p)); resetHttp(); }
 
 let _http = null;
+let _apiKey = null;
 
 function http() {
   if (!_http) _http = cockpit.http({ port: getPort(), address: '127.0.0.1' });
@@ -16,25 +17,37 @@ export function resetHttp() {
   if (_http) { try { _http.close(); } catch {} _http = null; }
 }
 
-// cockpit.http() connects from localhost so the service trusts it without
-// any credentials. This just reads the port written by the service at startup
-// so we connect on the right port automatically.
+function authHeaders() {
+  return _apiKey ? { 'Authorization': `Bearer ${_apiKey}` } : {};
+}
+
+// Reads the key file written by the service at startup to get the port and
+// bearer token. cockpit.file() is gated by Cockpit's own auth so this is safe.
+// When running as a container the data volume is at ~/download-superstation/data/;
+// fall back to the bare-metal path for non-container installs.
 export async function initAuth() {
   try {
     const user = await cockpit.user();
-    const path = `${user.home}/.download-superstation/cockpit-api-key`;
-    const raw  = await cockpit.file(path).read();
-    if (raw) {
-      const cfg = JSON.parse(raw);
-      if (cfg.port) setPort(cfg.port);
+    const paths = [
+      `${user.home}/download-superstation/data/cockpit-api-key`,
+      `${user.home}/.download-superstation/cockpit-api-key`,
+    ];
+    for (const path of paths) {
+      const raw = await cockpit.file(path).read();
+      if (raw) {
+        const cfg = JSON.parse(raw);
+        if (cfg.port) setPort(cfg.port);
+        if (cfg.key)  _apiKey = cfg.key;
+        break;
+      }
     }
   } catch {
-    // File unreadable or missing — proceed with the default/stored port.
+    // File unreadable or missing — proceed with stored port and no bearer token.
   }
 }
 
 async function req(method, path, body, extraHeaders = {}) {
-  const opts = { method, path, headers: { ...extraHeaders } };
+  const opts = { method, path, headers: { ...authHeaders(), ...extraHeaders } };
   if (body !== undefined) opts.body = body;
 
   let status = 200;
@@ -103,7 +116,7 @@ export async function addTorrentFile(file, savePath) {
   let status = 200;
   const r = http().request({
     method: 'POST', path: '/api/torrents',
-    headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+    headers: { ...authHeaders(), 'Content-Type': `multipart/form-data; boundary=${boundary}` },
     body: body.buffer,
   });
   r.response(s => { status = s; });
