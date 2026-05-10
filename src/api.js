@@ -21,30 +21,26 @@ function authHeaders() {
   return _apiKey ? { 'Authorization': `Bearer ${_apiKey}` } : {};
 }
 
-// cockpit.file().read() can hang indefinitely on SELinux-relabeled container
-// volumes. Race each read against a 3-second timeout so initAuth() always
-// resolves promptly even when a path is inaccessible.
-function readFileTimeout(path, ms = 3000) {
-  return Promise.race([
-    cockpit.file(path).read(),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
-  ]);
+// cockpit.file().read() can hang on SELinux-relabeled container files.
+// cockpit.spawn(['cat', path]) goes through the same bridge auth but uses a
+// process channel that is not affected by the same stall, so we use it here.
+async function readKeyFile(path) {
+  return cockpit.spawn(['cat', path], { err: 'ignore' });
 }
 
 // Reads the key file written by the service at startup to get the port and
-// bearer token. cockpit.file() is gated by Cockpit's own auth so this is safe.
-// Tries container path first (~/download-superstation/data/), then bare-metal
-// path (~/.download-superstation/). Each attempt is individually time-bounded.
+// bearer token. Tries the bare-metal/shared-mount path first (~/.download-
+// superstation/), then the legacy container data-volume path as a fallback.
 export async function initAuth() {
   try {
     const user = await cockpit.user();
     const paths = [
-      `${user.home}/download-superstation/data/cockpit-api-key`,
       `${user.home}/.download-superstation/cockpit-api-key`,
+      `${user.home}/download-superstation/data/cockpit-api-key`,
     ];
     for (const path of paths) {
       try {
-        const raw = await readFileTimeout(path);
+        const raw = await readKeyFile(path);
         if (raw) {
           const cfg = JSON.parse(raw);
           if (cfg.port) setPort(cfg.port);
@@ -52,7 +48,7 @@ export async function initAuth() {
           break;
         }
       } catch {
-        // File missing, unreadable, or timed out — try next path.
+        // File missing or unreadable — try next path.
       }
     }
   } catch {
