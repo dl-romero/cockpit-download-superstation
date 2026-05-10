@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.1] — 2026-05-10
+
+### Fixed
+
+- `.torrent` file upload returned BAD REQUEST: `cockpit.http()` corrupts raw binary `ArrayBuffer` bodies in transit through `cockpit-bridge`. The upload now base64-encodes the file and sends it as JSON (`{ file_b64, filename }`), which the backend decodes. Requires **Download Superstation v1.3.1 or later**. Magnet links were unaffected.
+
+---
+
 ## [1.0.0] — 2026-05-09
 
 ### Added
