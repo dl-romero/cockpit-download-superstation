@@ -9,7 +9,7 @@ let _http = null;
 let _apiKey = null;
 
 function http() {
-  if (!_http) _http = cockpit.http({ port: getPort(), address: '127.0.0.1' });
+  if (!_http) _http = cockpit.http(getPort());
   return _http;
 }
 
@@ -57,8 +57,10 @@ export async function initAuth() {
 }
 
 async function req(method, path, body, extraHeaders = {}) {
-  const opts = { method, path, headers: { ...authHeaders(), ...extraHeaders } };
-  if (body !== undefined) opts.body = body;
+  // cockpit-bridge reads the entire request body before connecting, and only
+  // starts the connection when the JS client sends channel EOF. The JS client
+  // only sends EOF when opts.body is defined (even ''), so we always set it.
+  const opts = { method, path, headers: { ...authHeaders(), ...extraHeaders }, body: body ?? '' };
 
   let status = 200;
   const r = http().request(opts);
