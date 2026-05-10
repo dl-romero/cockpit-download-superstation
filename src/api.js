@@ -21,10 +21,20 @@ function authHeaders() {
   return _apiKey ? { 'Authorization': `Bearer ${_apiKey}` } : {};
 }
 
+// cockpit.file().read() can hang indefinitely on SELinux-relabeled container
+// volumes. Race each read against a 3-second timeout so initAuth() always
+// resolves promptly even when a path is inaccessible.
+function readFileTimeout(path, ms = 3000) {
+  return Promise.race([
+    cockpit.file(path).read(),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+  ]);
+}
+
 // Reads the key file written by the service at startup to get the port and
 // bearer token. cockpit.file() is gated by Cockpit's own auth so this is safe.
-// When running as a container the data volume is at ~/download-superstation/data/;
-// fall back to the bare-metal path for non-container installs.
+// Tries container path first (~/download-superstation/data/), then bare-metal
+// path (~/.download-superstation/). Each attempt is individually time-bounded.
 export async function initAuth() {
   try {
     const user = await cockpit.user();
@@ -33,16 +43,20 @@ export async function initAuth() {
       `${user.home}/.download-superstation/cockpit-api-key`,
     ];
     for (const path of paths) {
-      const raw = await cockpit.file(path).read();
-      if (raw) {
-        const cfg = JSON.parse(raw);
-        if (cfg.port) setPort(cfg.port);
-        if (cfg.key)  _apiKey = cfg.key;
-        break;
+      try {
+        const raw = await readFileTimeout(path);
+        if (raw) {
+          const cfg = JSON.parse(raw);
+          if (cfg.port) setPort(cfg.port);
+          if (cfg.key)  _apiKey = cfg.key;
+          break;
+        }
+      } catch {
+        // File missing, unreadable, or timed out — try next path.
       }
     }
   } catch {
-    // File unreadable or missing — proceed with stored port and no bearer token.
+    // cockpit.user() failed — proceed with stored port and no bearer token.
   }
 }
 
