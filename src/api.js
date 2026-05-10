@@ -5,8 +5,7 @@ const PORT_KEY = 'ds-port';
 export function getPort() { return parseInt(localStorage.getItem(PORT_KEY) || '8080'); }
 export function setPort(p) { localStorage.setItem(PORT_KEY, String(p)); resetHttp(); }
 
-let _http    = null;
-let _apiKey  = null;
+let _http = null;
 
 function http() {
   if (!_http) _http = cockpit.http({ port: getPort(), address: '127.0.0.1' });
@@ -17,25 +16,25 @@ export function resetHttp() {
   if (_http) { try { _http.close(); } catch {} _http = null; }
 }
 
-function authHeaders() {
-  return _apiKey ? { Authorization: `Bearer ${_apiKey}` } : {};
-}
-
-// Read the API key (and port) written by the service at startup.
-// cockpit.file() is gated by Cockpit's own authentication, so no
-// separate login is needed.
+// cockpit.http() connects from localhost so the service trusts it without
+// any credentials. This just reads the port written by the service at startup
+// so we connect on the right port automatically.
 export async function initAuth() {
-  const user = await cockpit.user();
-  const path = `${user.home}/.download-superstation/cockpit-api-key`;
-  const raw  = await cockpit.file(path).read();
-  if (!raw) throw new Error('API key file not found. Is the Download Superstation service running?');
-  const cfg = JSON.parse(raw);
-  _apiKey = cfg.key;
-  if (cfg.port) setPort(cfg.port);
+  try {
+    const user = await cockpit.user();
+    const path = `${user.home}/.download-superstation/cockpit-api-key`;
+    const raw  = await cockpit.file(path).read();
+    if (raw) {
+      const cfg = JSON.parse(raw);
+      if (cfg.port) setPort(cfg.port);
+    }
+  } catch {
+    // File unreadable or missing — proceed with the default/stored port.
+  }
 }
 
 async function req(method, path, body, extraHeaders = {}) {
-  const opts = { method, path, headers: { ...authHeaders(), ...extraHeaders } };
+  const opts = { method, path, headers: { ...extraHeaders } };
   if (body !== undefined) opts.body = body;
 
   let status = 200;
@@ -104,7 +103,7 @@ export async function addTorrentFile(file, savePath) {
   let status = 200;
   const r = http().request({
     method: 'POST', path: '/api/torrents',
-    headers: { ...authHeaders(), 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+    headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
     body: body.buffer,
   });
   r.response(s => { status = s; });
