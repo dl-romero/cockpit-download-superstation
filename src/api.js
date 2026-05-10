@@ -1,12 +1,12 @@
 const cockpit = window.cockpit;
 
-const SESSION_KEY = 'ds-session';
-const PORT_KEY    = 'ds-port';
+const PORT_KEY = 'ds-port';
 
 export function getPort() { return parseInt(localStorage.getItem(PORT_KEY) || '8080'); }
 export function setPort(p) { localStorage.setItem(PORT_KEY, String(p)); resetHttp(); }
 
-let _http = null;
+let _http    = null;
+let _apiKey  = null;
 
 function http() {
   if (!_http) _http = cockpit.http({ port: getPort(), address: '127.0.0.1' });
@@ -17,11 +17,21 @@ export function resetHttp() {
   if (_http) { try { _http.close(); } catch {} _http = null; }
 }
 
-function session() { return localStorage.getItem(SESSION_KEY); }
-
 function authHeaders() {
-  const s = session();
-  return s ? { Authorization: `Bearer ${s}` } : {};
+  return _apiKey ? { Authorization: `Bearer ${_apiKey}` } : {};
+}
+
+// Read the API key (and port) written by the service at startup.
+// cockpit.file() is gated by Cockpit's own authentication, so no
+// separate login is needed.
+export async function initAuth() {
+  const user = await cockpit.user();
+  const path = `${user.home}/.download-superstation/cockpit-api-key`;
+  const raw  = await cockpit.file(path).read();
+  if (!raw) throw new Error('API key file not found. Is the Download Superstation service running?');
+  const cfg = JSON.parse(raw);
+  _apiKey = cfg.key;
+  if (cfg.port) setPort(cfg.port);
 }
 
 async function req(method, path, body, extraHeaders = {}) {
@@ -42,30 +52,6 @@ async function req(method, path, body, extraHeaders = {}) {
   }
   try { return JSON.parse(raw); } catch { return raw; }
 }
-
-// ── Auth ───────────────────────────────────────────────────────────────────
-
-export async function login(username, password) {
-  const r = http().request({
-    method: 'POST',
-    path: '/api/auth/login',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
-  });
-
-  const data = JSON.parse(await r);
-  if (!data.ok) throw new Error(data.error || 'Login failed');
-  if (data.token) localStorage.setItem(SESSION_KEY, data.token);
-  return data;
-}
-
-export function logout() {
-  try { req('POST', '/api/auth/logout'); } catch {}
-  localStorage.removeItem(SESSION_KEY);
-  resetHttp();
-}
-
-export function isAuthenticated() { return !!session(); }
 
 // ── Torrents ───────────────────────────────────────────────────────────────
 

@@ -352,7 +352,7 @@ function matchesCategory(t, cat) {
   return true;
 }
 
-export default function TorrentManager({ onLogout, onAuthError }) {
+export default function TorrentManager({ onAuthError }) {
   const [torrents,        setTorrents]        = useState([]);
   const [stats,           setStats]           = useState(null);
   const [selected,        setSelected]        = useState(new Set());
@@ -553,9 +553,6 @@ export default function TorrentManager({ onLogout, onAuthError }) {
         <div className="ds-sidebar-bottom">
           <button className="ds-btn sm" onClick={() => setSettingsOpen(true)} style={{ width: '100%', justifyContent: 'center' }}>
             ⚙ Settings
-          </button>
-          <button className="ds-btn sm" onClick={onLogout} style={{ width: '100%', justifyContent: 'center', marginTop: 6 }}>
-            Sign out
           </button>
         </div>
       </nav>

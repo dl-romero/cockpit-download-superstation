@@ -17,8 +17,6 @@ export default function SettingsModal({ onClose, onAuthError }) {
   const [updateMsg, setUpdateMsg] = useState({ text: '', status: '' });
   const [updating, setUpdating]   = useState(false);
 
-  const [fetchKey, setFetchKey] = useState(0);
-
   useEffect(() => {
     setLoading(true);
     setError('');
@@ -46,7 +44,7 @@ export default function SettingsModal({ onClose, onAuthError }) {
       });
 
     return () => { controller.cancelled = true; clearTimeout(timeout); };
-  }, [fetchKey]);
+  }, []);
 
   function field(key) {
     return {
@@ -112,31 +110,6 @@ export default function SettingsModal({ onClose, onAuthError }) {
         </div>
 
         <div className="ds-modal-body">
-          {/* Port — always visible so users can fix a wrong port without needing the API */}
-          <div className="ds-settings-section">
-            <div className="ds-settings-section-title">Cockpit Plugin</div>
-            <div className="ds-settings-row">
-              <label className="ds-label">Service Port</label>
-              <div className="ds-settings-input-unit">
-                <input
-                  className="ds-input"
-                  type="number"
-                  defaultValue={api.getPort()}
-                  min="1" max="65535"
-                  id="cockpit-port-input"
-                />
-                <button className="ds-btn sm" onClick={() => {
-                  const p = parseInt(document.getElementById('cockpit-port-input').value) || 8080;
-                  api.setPort(p);
-                  setFetchKey(k => k + 1);
-                }}>
-                  Apply
-                </button>
-              </div>
-              <div className="ds-settings-hint">Port where Download Superstation is running on this server.</div>
-            </div>
-          </div>
-
           {loading ? (
             <div style={{ textAlign: 'center', padding: 32, color: 'var(--pf-v5-global--Color--200)' }}>Loading…</div>
           ) : (

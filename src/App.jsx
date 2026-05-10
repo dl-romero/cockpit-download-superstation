@@ -1,45 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { Spinner } from '@patternfly/react-core';
 import * as api from './api';
-import LoginPage from './LoginPage';
 import TorrentManager from './TorrentManager';
 
 export default function App() {
-  const [authState, setAuthState] = useState('loading'); // loading | authenticated | unauthenticated
+  const [state, setState] = useState('loading'); // loading | ready | error
+  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
-    if (!api.isAuthenticated()) { setAuthState('unauthenticated'); return; }
-    api.getStats()
-      .then(() => setAuthState('authenticated'))
-      .catch(e => {
-        if (e.status === 401) setAuthState('unauthenticated');
-        else setAuthState('authenticated'); // service might be down; still show the UI
-      });
+    api.initAuth()
+      .then(() => setState('ready'))
+      .catch(e => { setErrorMsg(e.message || 'Initialisation failed'); setState('error'); });
   }, []);
 
-  function handleLogin() { setAuthState('authenticated'); }
-
-  function handleLogout() {
-    api.logout();
-    setAuthState('unauthenticated');
-  }
-
-  function handleAuthError() {
-    api.logout();
-    setAuthState('unauthenticated');
-  }
-
-  if (authState === 'loading') {
+  if (state === 'loading') {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-        <Spinner size="lg" />
+        <span style={{ color: 'var(--pf-v5-global--Color--200)' }}>Connecting…</span>
       </div>
     );
   }
 
-  if (authState === 'unauthenticated') {
-    return <LoginPage onLogin={handleLogin} />;
+  if (state === 'error') {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+        <div style={{ maxWidth: 400, textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>⚠</div>
+          <div style={{ fontWeight: 600, marginBottom: 8 }}>Could not connect to Download Superstation</div>
+          <div style={{ color: 'var(--pf-v5-global--Color--200)', fontSize: 13, marginBottom: 20 }}>{errorMsg}</div>
+          <button className="ds-btn primary" onClick={() => { setState('loading'); api.initAuth().then(() => setState('ready')).catch(e => { setErrorMsg(e.message); setState('error'); }); }}>
+            Retry
+          </button>
+        </div>
+      </div>
+    );
   }
 
-  return <TorrentManager onLogout={handleLogout} onAuthError={handleAuthError} />;
+  function handleAuthError() {
+    setErrorMsg('Session expired or service restarted. Click Retry to reconnect.');
+    setState('error');
+  }
+
+  return <TorrentManager onAuthError={handleAuthError} />;
 }
