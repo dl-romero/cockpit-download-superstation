@@ -101,46 +101,17 @@ export const addMagnet = (magnet, savePath) =>
     { 'Content-Type': 'application/json' });
 
 export async function addTorrentFile(file, savePath) {
-  const boundary = '----DSBoundary' + Math.random().toString(36).slice(2, 10);
-  const CRLF = '\r\n';
-  const enc  = new TextEncoder();
-
-  const pre = enc.encode(
-    `--${boundary}${CRLF}` +
-    `Content-Disposition: form-data; name="file"; filename="${file.name}"${CRLF}` +
-    `Content-Type: application/octet-stream${CRLF}${CRLF}`
-  );
-  const fileBytes = new Uint8Array(await file.arrayBuffer());
-  let postStr = CRLF;
-  if (savePath) {
-    postStr += `--${boundary}${CRLF}` +
-      `Content-Disposition: form-data; name="save_path"${CRLF}${CRLF}` +
-      `${savePath}${CRLF}`;
+  // cockpit.http() cannot send raw binary bodies without corruption, so we
+  // base64-encode the .torrent file and send it as JSON instead.
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 8192) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
   }
-  postStr += `--${boundary}--${CRLF}`;
-  const post = enc.encode(postStr);
-
-  const body = new Uint8Array(pre.length + fileBytes.length + post.length);
-  body.set(pre, 0);
-  body.set(fileBytes, pre.length);
-  body.set(post, pre.length + fileBytes.length);
-
-  let status = 200;
-  const r = http().request({
-    method: 'POST', path: '/api/torrents',
-    headers: { ...authHeaders(), 'Content-Type': `multipart/form-data; boundary=${boundary}` },
-    body: body.buffer,
-  });
-  r.response(s => { status = s; });
-  const raw = await r;
-
-  if (status === 401) { const e = new Error('Unauthorized'); e.status = 401; throw e; }
-  if (status >= 400) {
-    let msg = `HTTP ${status}`;
-    try { msg = JSON.parse(raw).error || msg; } catch {}
-    throw new Error(msg);
-  }
-  return JSON.parse(raw);
+  const file_b64 = btoa(binary);
+  return req('POST', '/api/torrents',
+    JSON.stringify({ file_b64, filename: file.name, save_path: savePath || undefined }),
+    { 'Content-Type': 'application/json' });
 }
 
 // ── Settings ───────────────────────────────────────────────────────────────
