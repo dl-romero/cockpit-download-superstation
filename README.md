@@ -4,6 +4,8 @@ A [Cockpit](https://cockpit-project.org/) plugin for [Download Superstation](htt
 
 When installed, a **Download Superstation** item appears in Cockpit's navigation menu, giving you full torrent management without opening a separate browser tab. No login prompt — Cockpit's own authentication gates access.
 
+![Download Superstation running inside Cockpit](docs/screenshot.png)
+
 ---
 
 ## Features
